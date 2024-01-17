@@ -1,3 +1,4 @@
+import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup } from 'firebase/auth'
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
@@ -8,6 +9,24 @@ const Nav = () => {
   const { pathname } = useLocation()
   const [searchValue, setSearchValue] = useState("")
   const navigate = useNavigate()
+  const auth = getAuth()
+  const provider = new GoogleAuthProvider()
+
+  const [userData, setUserData] = useState({})
+
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      console.log('user: '+user)
+      if(user) {
+        if(pathname === '/') {
+          navigate('/main')
+        }        
+      } else {
+        navigate('/')
+      }
+    })
+  }, [auth, navigate, pathname])
+  
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll)
@@ -32,6 +51,16 @@ const Nav = () => {
     navigate(`/search?q=${e.target.value}`)
   }
 
+  const handleAuth = () => {
+    signInWithPopup(auth, provider)
+    .then(result => {
+      setUserData(result.user)
+    })
+    .catch(error => {
+      console.log(error)
+    })
+  }
+
   return (
     <NavWrapper show={show}>
       <Logo>
@@ -43,19 +72,42 @@ const Nav = () => {
       </Logo>
 
       {pathname === "/" ? 
-        (<Login>Login</Login>) : 
-        <Input 
-          value={searchValue}
-          onChange={handleChange}
-          className='nav__input' 
-          type='text' 
-          placeholder='검색해주세요' />
+        (<Login onClick={handleAuth}>
+          Login
+          </Login>) : 
+        <>
+          <Input 
+            value={searchValue}
+            onChange={handleChange}
+            className='nav__input' 
+            type='text' 
+            placeholder='검색해주세요' />
+
+            <SignOut>
+              <UserImg src={userData.photoURL} alt={userData.displayName} />
+              <DropDown>
+                <span>Sign Out</span>
+              </DropDown>
+            </SignOut>
+        </>
       }
     </NavWrapper>
   )
 }
 
 export default Nav
+
+const SignOut = styled.div`
+
+`
+
+const UserImg = styled.div`
+
+`
+
+const DropDown = styled.div`
+
+`
 
 const Login = styled.a `
   background-color: rgba(0,0,0,0.6);
@@ -91,6 +143,7 @@ const NavWrapper = styled.nav`
   height: 70px;
   background-color: ${props => props.show ? "#090b13" : "transparent" };
   display: flex;
+  justify-content: space-between;
   align-items: center;
   padding: 0 36px;
   letter-spacing: 16px;
